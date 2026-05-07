@@ -9,31 +9,37 @@ export type Outcome = 'callback-fired' | 'callback-skipped'
 
 export interface Scenario {
   name: string
-  props: { disabled?: boolean; loading?: boolean }
-  /** 模拟一次"按下" · 期望结果 */
-  onPressOutcome: Outcome
+  props: { onClickPresent?: boolean }
+  /** 模拟一次点击 / 按下 · 期望结果 */
+  pressOutcome: Outcome
 }
 
 /** 共享场景 · Web + RN 都跑 */
-export const buttonScenarios: Scenario[] = [
+export const avatarScenarios: Scenario[] = [
   {
-    name: 'default · 按下触发回调',
-    props: {},
-    onPressOutcome: 'callback-fired',
+    name: '传了 onClick · 点击触发回调',
+    props: { onClickPresent: true },
+    pressOutcome: 'callback-fired',
   },
   {
-    name: 'disabled · 按下不触发',
-    props: { disabled: true },
-    onPressOutcome: 'callback-skipped',
-  },
-  {
-    name: 'loading · 按下不触发',
-    props: { loading: true },
-    onPressOutcome: 'callback-skipped',
-  },
-  {
-    name: 'disabled + loading · 按下不触发',
-    props: { disabled: true, loading: true },
-    onPressOutcome: 'callback-skipped',
+    name: '没传 onClick · 不该有回调发生',
+    props: { onClickPresent: false },
+    pressOutcome: 'callback-skipped',
   },
 ]
+
+/** 取 name 首字符做 fallback · 跨端共用 */
+export function avatarInitial(name?: string): string {
+  if (!name) return ''
+  // Array.from 处理 emoji / 多字节字符 · 取第 1 个 grapheme
+  return Array.from(name.trim())[0] ?? ''
+}
+
+/** size → px · 跨端共用 (Web 走 css 变量 · RN 直接用 number) */
+export const avatarSizePx: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', number> = {
+  xs: 16,
+  sm: 24,
+  md: 32,
+  lg: 48,
+  xl: 64,
+}

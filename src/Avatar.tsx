@@ -1,51 +1,77 @@
+import { useState } from 'react'
 import type { AvatarProps } from './Avatar.types'
+import { avatarInitial } from './Avatar.behavior'
 import './Avatar.css'
 
 const cls = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join(' ')
 
-/** akong Avatar · Web · DOM `<button>` */
+/** akong Avatar · Web · DOM `<img>` 加载失败时显示首字 fallback */
 export function Avatar(props: AvatarProps) {
   const {
-    variant = 'primary',
+    src,
+    name,
     size = 'md',
-    disabled = false,
-    loading = false,
-    fullWidth = false,
-    iconLeft,
-    iconRight,
-    children,
+    shape = 'circle',
+    border = false,
     onClick,
     onPress,
-    type = 'button',
     ariaLabel,
   } = props
 
+  const [errored, setErrored] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  const showFallback = !src || errored
+  const initial = avatarInitial(name)
+
+  const clickable = !!(onClick || onPress)
   const handle = () => {
-    if (disabled || loading) return
     onClick?.()
     onPress?.()
   }
 
-  return (
-    <button
-      type={type}
-      aria-label={ariaLabel}
-      aria-busy={loading || undefined}
-      aria-disabled={disabled || undefined}
-      disabled={disabled}
-      onClick={handle}
-      className={cls(
-        'ak-avatar',
-        `ak-avatar--${variant}`,
-        `ak-avatar--${size}`,
-        fullWidth && 'ak-avatar--full-width',
-        loading && 'ak-avatar--loading',
+  const className = cls(
+    'ak-avatar',
+    `ak-avatar--${size}`,
+    `ak-avatar--${shape}`,
+    border && 'ak-avatar--border',
+    clickable && 'ak-avatar--clickable',
+  )
+
+  const a11y = ariaLabel ?? name ?? 'avatar'
+
+  const inner = (
+    <>
+      {!showFallback && (
+        <img
+          className={cls('ak-avatar__img', loaded && 'ak-avatar__img--loaded')}
+          src={src}
+          alt={a11y}
+          onLoad={() => setLoaded(true)}
+          onError={() => setErrored(true)}
+          draggable={false}
+        />
       )}
-    >
-      {iconLeft && <span className="ak-avatar__icon">{iconLeft}</span>}
-      {children && <span>{children}</span>}
-      {iconRight && <span className="ak-avatar__icon">{iconRight}</span>}
-    </button>
+      {showFallback && (
+        <span className="ak-avatar__fallback" aria-hidden={clickable ? undefined : false}>
+          {initial}
+        </span>
+      )}
+    </>
+  )
+
+  if (clickable) {
+    return (
+      <button type="button" aria-label={a11y} className={className} onClick={handle}>
+        {inner}
+      </button>
+    )
+  }
+
+  return (
+    <span role="img" aria-label={a11y} className={className}>
+      {inner}
+    </span>
   )
 }
 

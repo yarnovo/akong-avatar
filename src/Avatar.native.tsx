@@ -2,101 +2,103 @@
  * akong Avatar · React Native 实现
  *
  * Metro bundler 默认按 `.native.tsx` 后缀解析 RN 端 · `.tsx` 解析 Web 端
- * 用方 `import { Avatar } from '@akong/button'` 自动取对应平台
+ * 用方 `import { Avatar } from '@akong/avatar'` 自动取对应平台
  */
 
-import { Pressable, Text, View, ActivityIndicator, useColorScheme } from 'react-native'
+import { useState } from 'react'
+import { Pressable, Image, View, Text, useColorScheme } from 'react-native'
 import { tokens } from '@akong/tokens'
 import type { AvatarProps } from './Avatar.types'
-
-const sizes = {
-  sm: { height: 32, paddingH: tokens.space[3], fontSize: tokens.text.sm },
-  md: { height: 40, paddingH: tokens.space[4], fontSize: tokens.text.base },
-  lg: { height: 48, paddingH: tokens.space[5], fontSize: tokens.text.md },
-} as const
-
-function variantStyles(variant: NonNullable<AvatarProps['variant']>, scheme: 'light' | 'dark') {
-  const t = scheme === 'dark' ? tokens.dark : tokens.light
-  switch (variant) {
-    case 'primary':
-      return { bg: t.fg, fg: t.fgInverse }
-    case 'secondary':
-      return { bg: t.bgSubtle, fg: t.fg }
-    case 'ghost':
-      return { bg: 'transparent', fg: t.fg }
-    case 'destructive':
-      return { bg: t.accent, fg: t.accentFg }
-    case 'link':
-      return { bg: 'transparent', fg: t.fg }
-  }
-}
+import { avatarInitial, avatarSizePx } from './Avatar.behavior'
 
 export function Avatar(props: AvatarProps) {
   const {
-    variant = 'primary',
+    src,
+    name,
     size = 'md',
-    disabled = false,
-    loading = false,
-    fullWidth = false,
-    iconLeft,
-    iconRight,
-    children,
+    shape = 'circle',
+    border = false,
     onClick,
     onPress,
     ariaLabel,
   } = props
 
-  const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark'
-  const sz = sizes[size]
-  const v = variantStyles(variant, scheme)
+  const [errored, setErrored] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
+  const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark'
+  const t = scheme === 'dark' ? tokens.dark : tokens.light
+
+  const px = avatarSizePx[size]
+  const fontSize = Math.max(8, Math.round(px / 2.5))
+  const radius = shape === 'circle' ? tokens.radius.full : tokens.radius.md
+
+  const showFallback = !src || errored
+  const initial = avatarInitial(name)
+
+  const clickable = !!(onClick || onPress)
   const handle = () => {
-    if (disabled || loading) return
     onClick?.()
     onPress?.()
   }
 
-  return (
-    <Pressable
-      onPress={handle}
-      accessibilityLabel={ariaLabel}
-      accessibilityRole="button"
-      accessibilityState={{ disabled: disabled || loading, busy: loading }}
-      disabled={disabled || loading}
-      style={({ pressed }: { pressed: boolean }) => ({
-        height: variant === 'link' ? undefined : sz.height,
-        paddingHorizontal: variant === 'link' ? 0 : sz.paddingH,
-        backgroundColor: v.bg,
-        borderRadius: variant === 'link' ? 0 : tokens.radius.full,
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
-        justifyContent: 'center' as const,
-        alignSelf: (fullWidth ? 'stretch' : 'flex-start') as 'stretch' | 'flex-start',
-        opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
-        gap: tokens.space[2],
-      })}
+  const a11y = ariaLabel ?? name ?? 'avatar'
+
+  const containerStyle = {
+    width: px,
+    height: px,
+    borderRadius: radius,
+    backgroundColor: t.bgSubtle,
+    borderWidth: border ? 1 : 0,
+    borderColor: t.border,
+    overflow: 'hidden' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  }
+
+  const inner = showFallback ? (
+    <Text
+      style={{
+        fontSize,
+        color: t.fgMuted,
+        fontWeight: tokens.weight.medium,
+        textTransform: 'uppercase',
+        lineHeight: fontSize,
+      }}
     >
-      {loading ? (
-        <ActivityIndicator color={v.fg as string} />
-      ) : (
-        <>
-          {iconLeft && <View>{iconLeft}</View>}
-          {children && (
-            <Text
-              style={{
-                color: v.fg as string,
-                fontSize: sz.fontSize,
-                fontWeight: tokens.weight.medium,
-                textDecorationLine: variant === 'link' ? 'underline' : 'none',
-              }}
-            >
-              {children}
-            </Text>
-          )}
-          {iconRight && <View>{iconRight}</View>}
-        </>
-      )}
-    </Pressable>
+      {initial}
+    </Text>
+  ) : (
+    <Image
+      source={{ uri: src }}
+      onLoad={() => setLoaded(true)}
+      onError={() => setErrored(true)}
+      style={{ width: '100%', height: '100%', opacity: loaded ? 1 : 0 }}
+      resizeMode="cover"
+      accessibilityLabel={a11y}
+    />
+  )
+
+  if (clickable) {
+    return (
+      <Pressable
+        onPress={handle}
+        accessibilityLabel={a11y}
+        accessibilityRole="imagebutton"
+        style={({ pressed }: { pressed: boolean }) => ({
+          ...containerStyle,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        {inner}
+      </Pressable>
+    )
+  }
+
+  return (
+    <View accessibilityLabel={a11y} accessibilityRole="image" style={containerStyle}>
+      {inner}
+    </View>
   )
 }
 
