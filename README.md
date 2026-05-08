@@ -1,5 +1,7 @@
 # @akong/avatar
 
+> ← 回 [akong design system](https://yarnovo.github.io/akong-core/) 总站
+
 akong Avatar · 极简 · 跨端 (Web + React Native) · 圆形头像 · 加载失败首字 fallback
 
 ## Demo
